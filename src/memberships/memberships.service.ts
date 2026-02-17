@@ -1,0 +1,114 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateMembershipDto } from './dto/create-membership.dto';
+import { UpdateMembershipDto } from './dto/update-membership.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { QueryParamsDto } from '../common/dto/query-params.dto';
+
+@Injectable()
+export class MembershipsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createMembershipDto: CreateMembershipDto) {
+    return this.prisma.membership.create({
+      data: {
+        ...createMembershipDto,
+        startDate: new Date(createMembershipDto.startDate),
+        endDate: new Date(createMembershipDto.endDate),
+      },
+    });
+  }
+
+  async findAll(query: QueryParamsDto) {
+    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc' } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { user: { name: { contains: search, mode: 'insensitive' } } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { type: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.membership.findMany({
+        where,
+        take: limit,
+        skip,
+        orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: sortOrder },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      this.prisma.membership.count({ where }),
+    ]);
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findOne(id: number) {
+    const membership = await this.prisma.membership.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException(`Membership with ID ${id} not found`);
+    }
+
+    return membership;
+  }
+
+  async update(id: number, updateMembershipDto: UpdateMembershipDto) {
+    const data = { ...updateMembershipDto } as any;
+    if (updateMembershipDto.startDate) {
+      data.startDate = new Date(updateMembershipDto.startDate);
+    }
+    if (updateMembershipDto.endDate) {
+      data.endDate = new Date(updateMembershipDto.endDate);
+    }
+
+    try {
+      return await this.prisma.membership.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      throw new NotFoundException(`Membership with ID ${id} not found`);
+    }
+  }
+
+  async remove(id: number) {
+    try {
+      await this.prisma.membership.delete({
+        where: { id },
+      });
+      return { message: 'Membership deleted successfully' };
+    } catch (error) {
+      throw new NotFoundException(`Membership with ID ${id} not found`);
+    }
+  }
+}
