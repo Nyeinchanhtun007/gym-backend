@@ -34,15 +34,21 @@ model User {
 }
 
 model Membership {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  startDate DateTime
-  endDate   DateTime
-  type      String
-  status    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  startDate         DateTime
+  endDate           DateTime
+  planTier          String   // Basic, Standard, Premium
+  billingCycle      String   // Monthly, Yearly
+  status            String   // ACTIVE, EXPIRED, CANCELLED, PENDING_DOWNGRADE
+  price             Float    @default(0)
+  dailyClassLimit   Int      @default(0)
+  monthlyClassLimit Int      @default(0)
+  nextPlanTier      String?  // For pending downgrades
+  nextBillingCycle  String?  // For pending downgrades
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Class {

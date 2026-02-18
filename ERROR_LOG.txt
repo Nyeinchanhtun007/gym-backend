@@ -1,0 +1,6 @@
+[Nest] 8768  - 02/18/2026, 1:12:36 PM   ERROR [ExceptionsHandler] TokenError: Unauthorized
+{
+  code: 'invalid_client',
+  uri: undefined,
+  status: 500
+}

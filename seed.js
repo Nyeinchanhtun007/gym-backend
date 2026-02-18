@@ -54,8 +54,59 @@ async function main() {
 
   // 3. Create 100 Members (Users with Memberships)
   console.log('Creating 100 Members...');
-  const tiers = ['Initiate', 'Zenith', 'Titan'];
+  const membershipPlans = [
+    {
+      tier: 'Basic',
+      cycle: 'Monthly',
+      price: 30,
+      daily: 1,
+      monthly: 10,
+      duration: 30,
+    },
+    {
+      tier: 'Basic',
+      cycle: 'Yearly',
+      price: 300,
+      daily: 1,
+      monthly: 120,
+      duration: 365,
+    },
+    {
+      tier: 'Standard',
+      cycle: 'Monthly',
+      price: 60,
+      daily: 2,
+      monthly: 25,
+      duration: 30,
+    },
+    {
+      tier: 'Standard',
+      cycle: 'Yearly',
+      price: 600,
+      daily: 2,
+      monthly: 300,
+      duration: 365,
+    },
+    {
+      tier: 'Premium',
+      cycle: 'Monthly',
+      price: 100,
+      daily: 5,
+      monthly: 999,
+      duration: 30,
+    },
+    {
+      tier: 'Premium',
+      cycle: 'Yearly',
+      price: 1000,
+      daily: 5,
+      monthly: 9999,
+      duration: 365,
+    },
+  ];
+
   for (let i = 0; i < 100; i++) {
+    const plan = membershipPlans[i % membershipPlans.length];
     const user = await prisma.user.create({
       data: {
         email: `member${i + 1}@ygndemo.com`,
@@ -64,10 +115,14 @@ async function main() {
         password: hashedPassword,
         memberships: {
           create: {
-            type: tiers[i % 3],
+            planTier: plan.tier,
+            billingCycle: plan.cycle,
             status: 'ACTIVE',
+            price: plan.price,
+            dailyClassLimit: plan.daily,
+            monthlyClassLimit: plan.monthly,
             startDate: new Date(),
-            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            endDate: new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000),
           },
         },
       },

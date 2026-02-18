@@ -11,9 +11,28 @@ export class BookingsService {
   async create(createBookingDto: CreateBookingDto) {
     const { userId, classId } = createBookingDto;
 
-    // Check if user exists
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    // Check if user exists and fetch active membership
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        memberships: {
+          where: { status: { in: ['ACTIVE', 'PENDING_DOWNGRADE'] } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
     if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
+
+    const membership = user.memberships[0];
+    if (!membership) {
+      throw new BadRequestException('User does not have an active membership');
+    }
+
+    const now = new Date();
+    if (now < membership.startDate || now > membership.endDate) {
+      throw new BadRequestException('Membership is not active for the current date');
+    }
 
     // Check if class exists and has capacity
     const gymClass = await this.prisma.class.findUnique({
@@ -24,6 +43,44 @@ export class BookingsService {
 
     if (gymClass._count.bookings >= gymClass.capacity) {
       throw new BadRequestException('Class is already full');
+    }
+
+    // Check limits
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const todayBookingsCount = await this.prisma.booking.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+    });
+
+    if (todayBookingsCount >= (membership as any).dailyClassLimit) {
+      throw new BadRequestException(
+        `Daily class limit reached (${(membership as any).dailyClassLimit})`,
+      );
+    }
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyBookingsCount = await this.prisma.booking.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: startOfMonth,
+        },
+      },
+    });
+
+    if (monthlyBookingsCount >= (membership as any).monthlyClassLimit) {
+      throw new BadRequestException(
+        `Monthly class limit reached (${(membership as any).monthlyClassLimit})`,
+      );
     }
 
     // Check for duplicate booking

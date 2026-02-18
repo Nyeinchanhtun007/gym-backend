@@ -46,10 +46,22 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google login callback' })
   async googleAuthRedirect(@Req() req: any, @Res() res: any) {
-    const result = await this.authService.loginOAuth(req.user);
-    const userJson = encodeURIComponent(JSON.stringify(result.user));
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}&user=${userJson}`);
+    try {
+      if (!req.user) {
+        throw new Error('No user from Google');
+      }
+      const result = await this.authService.loginOAuth(req.user);
+      const userJson = encodeURIComponent(JSON.stringify(result.user));
+      const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}&user=${userJson}`);
+    } catch (error) {
+      console.error('Google Auth Error:', error);
+      return res.status(500).json({ 
+        message: 'Google login failed', 
+        error: error.message,
+        stack: error.stack 
+      });
+    }
   }
 
   @Get('facebook')
@@ -61,9 +73,21 @@ export class AuthController {
   @UseGuards(AuthGuard('facebook'))
   @ApiOperation({ summary: 'Facebook login callback' })
   async facebookAuthRedirect(@Req() req: any, @Res() res: any) {
-    const result = await this.authService.loginOAuth(req.user.user);
-    const userJson = encodeURIComponent(JSON.stringify(result.user));
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}&user=${userJson}`);
+    try {
+      if (!req.user || !req.user.user) {
+        throw new Error('No user from Facebook');
+      }
+      const result = await this.authService.loginOAuth(req.user.user);
+      const userJson = encodeURIComponent(JSON.stringify(result.user));
+      const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}&user=${userJson}`);
+    } catch (error) {
+       console.error('Facebook Auth Error:', error);
+       return res.status(500).json({ 
+         message: 'Facebook login failed', 
+         error: error.message,
+         stack: error.stack 
+       });
+    }
   }
 }
