@@ -1,154 +1,180 @@
-import 'dotenv/config';
-import { Pool } from 'pg';
+import { PrismaClient, Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database with raw SQL...');
+  console.log('Seeding database with Prisma Client...');
+  const saltRounds = 10;
+  const hashedDefaultPassword = await bcrypt.hash('password123', saltRounds);
 
-  try {
-    // 0. Ensure Schema Exists
-    console.log('Ensuring schema exists...');
-    await pool.query(`
-      DO $$ BEGIN
-        CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER', 'TRAINER');
-      EXCEPTION
-        WHEN duplicate_object THEN NULL;
-      END $$;
-    `);
+  // 0. Create Membership Plans
+  console.log('Creating Membership Plans...');
+  const plans = [
+    {
+      name: 'Basic',
+      description: 'Essential access for consistent fitness evolution.',
+      monthlyPrice: 30,
+      yearlyPrice: 300,
+      dailyClassLimit: 1,
+      monthlyClassLimit: 10,
+      features: ['1 Class per day', '10 Classes per month', 'Locker room access', 'Basic nutritional guide', 'Community support'],
+      isPopular: false,
+    },
+    {
+      name: 'Standard',
+      description: 'Multi-session access for high-intensity athletes.',
+      monthlyPrice: 60,
+      yearlyPrice: 600,
+      dailyClassLimit: 2,
+      monthlyClassLimit: 25,
+      features: ['2 Classes per day', '25 Classes per month', 'Full locker room amenities', '4 Guest passes per month', 'Priority class reservation', '10% Discount on fuel bar'],
+      isPopular: true,
+    },
+    {
+      name: 'Premium',
+      description: 'Unrestricted access for the elite performance seekers.',
+      monthlyPrice: 100,
+      yearlyPrice: 1000,
+      dailyClassLimit: 5,
+      monthlyClassLimit: 999,
+      features: ['5 Classes per day', 'Unlimited classes per month', 'Premium recovery lounge', 'Daily laundry & private locker', 'Monthly bio-metric review', 'Priority global access'],
+      isPopular: false,
+    },
+  ];
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "User" (
-        "id" SERIAL PRIMARY KEY,
-        "email" TEXT NOT NULL UNIQUE,
-        "password" TEXT NOT NULL,
-        "name" TEXT,
-        "role" "Role" NOT NULL DEFAULT 'USER',
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL
-      );
-    `);
+  for (const plan of plans) {
+    await (prisma as any).membershipPlan.upsert({
+      where: { name: plan.name },
+      update: plan,
+      create: plan,
+    });
+  }
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "Membership" (
-        "id" SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-        "startDate" TIMESTAMP(3) NOT NULL,
-        "endDate" TIMESTAMP(3) NOT NULL,
-        "type" TEXT NOT NULL,
-        "status" TEXT NOT NULL,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL
-      );
-    `);
+  // 1. Create Admin
+  console.log('Creating Admin...');
+  await prisma.user.upsert({
+    where: { email: 'admin@gym.com' },
+    update: {
+      password: hashedDefaultPassword,
+    },
+    create: {
+      email: 'admin@gym.com',
+      password: hashedDefaultPassword,
+      name: 'Admin User',
+      role: Role.ADMIN,
+    },
+  });
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "Class" (
-        "id" SERIAL PRIMARY KEY,
-        "name" TEXT NOT NULL,
-        "description" TEXT,
-        "trainerId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-        "schedule" TIMESTAMP(3) NOT NULL,
-        "capacity" INTEGER NOT NULL,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL
-      );
-    `);
+  // 2. Create 10 Trainers
+  console.log('Creating 10 Trainers...');
+  const trainers = [];
+  for (let i = 1; i <= 10; i++) {
+    const email = `trainer${i}@gym.com`;
+    const trainer = await prisma.user.upsert({
+      where: { email },
+      update: {
+        password: hashedDefaultPassword,
+      },
+      create: {
+        email,
+        password: hashedDefaultPassword,
+        name: `Trainer ${i}`,
+        role: Role.TRAINER,
+      },
+    });
+    trainers.push(trainer);
+  }
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "Booking" (
-        "id" SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-        "classId" INTEGER NOT NULL REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+  // 3. Create 100 Users
+  console.log('Creating 100 Users...');
+  for (let i = 1; i <= 100; i++) {
+    const email = `user${i}@gym.com`;
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {
+        password: hashedDefaultPassword,
+      },
+      create: {
+        email,
+        password: hashedDefaultPassword,
+        name: `User ${i}`,
+        role: Role.USER,
+      },
+    });
 
-    // 1. Create Admin
-    console.log('Creating Admin...');
-    await pool.query(`
-      INSERT INTO "User" (email, password, name, role, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, 'ADMIN'::"Role", NOW(), NOW())
-      ON CONFLICT (email) DO NOTHING
-    `, ['admin@gym.com', 'password123', 'Admin User']);
+    // Create Membership if not exists
+    const existingMembership = await prisma.membership.findFirst({
+      where: { userId: user.id, status: 'ACTIVE' },
+    });
 
-    // 2. Create 10 Trainers
-    console.log('Creating 10 Trainers...');
-    const trainers: any[] = [];
-    for (let i = 1; i <= 10; i++) {
-      const email = `trainer${i}@gym.com`;
-      const res = await pool.query(`
-        INSERT INTO "User" (email, password, name, role, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, 'TRAINER'::"Role", NOW(), NOW())
-        ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-        RETURNING id, name
-      `, [email, 'password123', `Trainer ${i}`]);
-      trainers.push(res.rows[0]);
-    }
-
-    // 3. Create 100 Users
-    console.log('Creating 100 Users...');
-    for (let i = 1; i <= 100; i++) {
-      const email = `user${i}@gym.com`;
-      const userRes = await pool.query(`
-        INSERT INTO "User" (email, password, name, role, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, 'USER'::"Role", NOW(), NOW())
-        ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-        RETURNING id
-      `, [email, 'password123', `User ${i}`]);
-
-      const userId = userRes.rows[0].id;
-
-      // Create Membership
+    if (!existingMembership) {
       const startDate = new Date();
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1);
 
-      await pool.query(`
-        INSERT INTO "Membership" ("userId", "startDate", "endDate", type, status, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, 'MONTHLY', 'ACTIVE', NOW(), NOW())
-      `, [userId, startDate, endDate]);
+      await prisma.membership.create({
+        data: {
+          userId: user.id,
+          startDate,
+          endDate,
+          planTier: 'Standard',
+          billingCycle: 'Monthly',
+          status: 'ACTIVE',
+          price: 50,
+          dailyClassLimit: 2,
+          monthlyClassLimit: 20,
+        },
+      });
     }
-
-    // 4. Create 5 Classes
-    console.log('Creating 5 Classes...');
-    const classData = [
-      { name: 'Morning Yoga', desc: 'Start your day with zen', capacity: 20 },
-      { name: 'HIIT Blast', desc: 'High Intensity Interval Training', capacity: 15 },
-      { name: 'Power Lifting', desc: 'Build serious strength', capacity: 10 },
-      { name: 'Zumba Dance', desc: 'Dance your way to fitness', capacity: 25 },
-      { name: 'Evening Meditation', desc: 'Relax and unwind', capacity: 30 },
-    ];
-
-    for (let i = 0; i < 5; i++) {
-      const trainerIndex = i % trainers.length;
-      const trainer = trainers[trainerIndex];
-      const data = classData[i];
-      const schedule = new Date();
-      schedule.setDate(schedule.getDate() + 1 + i); // Staggered days
-
-      // Check existence
-      const check = await pool.query('SELECT id FROM "Class" WHERE name = $1', [data.name]);
-      if (check.rows.length === 0) {
-        await pool.query(`
-          INSERT INTO "Class" (name, description, "trainerId", schedule, capacity, "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-        `, [data.name, data.desc, trainer.id, schedule, data.capacity]);
-        console.log(`Created class: ${data.name}`);
-      } else {
-        console.log(`Class ${data.name} already exists.`);
-      }
-    }
-
-    console.log('Seeding finished.');
-
-  } catch (e) {
-    console.error('Error during seeding:', e);
-    process.exit(1);
-  } finally {
-    await pool.end();
   }
+
+  // 4. Create 5 Classes
+  console.log('Creating 5 Classes...');
+  const classData = [
+    { name: 'Morning Yoga', desc: 'Start your day with zen', capacity: 20 },
+    { name: 'HIIT Blast', desc: 'High Intensity Interval Training', capacity: 15 },
+    { name: 'Power Lifting', desc: 'Build serious strength', capacity: 10 },
+    { name: 'Zumba Dance', desc: 'Dance your way to fitness', capacity: 25 },
+    { name: 'Evening Meditation', desc: 'Relax and unwind', capacity: 30 },
+  ];
+
+  for (let i = 0; i < 5; i++) {
+    const trainerIndex = i % trainers.length;
+    const trainer = trainers[trainerIndex];
+    const data = classData[i];
+    const schedule = new Date();
+    schedule.setDate(schedule.getDate() + 1 + i); // Staggered days
+
+    await prisma.class.upsert({
+      where: { id: i + 1 }, // Assuming IDs 1-5
+      update: {
+        name: data.name,
+        description: data.desc,
+        trainerId: trainer.id,
+        schedule,
+        capacity: data.capacity,
+      },
+      create: {
+        id: i + 1,
+        name: data.name,
+        description: data.desc,
+        trainerId: trainer.id,
+        schedule,
+        capacity: data.capacity,
+      },
+    });
+    console.log(`Upserted class: ${data.name}`);
+  }
+
+  console.log('Seeding finished.');
 }
 
-main();
+main()
+  .catch((e) => {
+    console.error('Error during seeding:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

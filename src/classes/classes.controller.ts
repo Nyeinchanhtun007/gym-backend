@@ -1,4 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
@@ -11,6 +15,8 @@ export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.TRAINER)
   @ApiOperation({ summary: 'Create a new gym class' })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: 'Class created successfully' })
@@ -39,6 +45,8 @@ export class ClassesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.TRAINER)
   @ApiOperation({ summary: 'Update class by ID' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Class updated successfully' })
@@ -48,6 +56,8 @@ export class ClassesController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.TRAINER)
   @ApiOperation({ summary: 'Delete class by ID' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Class deleted successfully' })

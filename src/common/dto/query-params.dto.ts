@@ -1,6 +1,7 @@
-import { IsOptional, IsInt, Min, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsInt, Min, IsString, IsIn, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 
 export class QueryParamsDto {
   @ApiPropertyOptional({ default: 1 })
@@ -32,8 +33,13 @@ export class QueryParamsDto {
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
 
+  @ApiPropertyOptional({ enum: Role })
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  role?: string;
+  plan?: string;
 }

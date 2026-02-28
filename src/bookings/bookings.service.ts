@@ -96,11 +96,14 @@ export class BookingsService {
     });
   }
 
-  async findAll(query: QueryParamsDto) {
-    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc' } = query;
+  async findAll(query: QueryParamsDto & { userId?: number }) {
+    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc', userId } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
+    if (userId) {
+      where.userId = userId;
+    }
     if (search) {
       where.OR = [
         { user: { name: { contains: search, mode: 'insensitive' } } },
@@ -117,7 +120,11 @@ export class BookingsService {
         orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: sortOrder },
         include: {
           user: { select: { id: true, name: true, email: true } },
-          class: true,
+          class: {
+            include: {
+              trainer: { select: { id: true, name: true } },
+            },
+          },
         },
       }),
       this.prisma.booking.count({ where }),

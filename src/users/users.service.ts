@@ -78,18 +78,27 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
+        photo: true,
         createdAt: true,
       },
     });
   }
 
   async findAll(query: QueryParamsDto) {
-    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc', role } = query;
+    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc', role, plan } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (role) {
       where.role = role;
+    }
+    if (plan) {
+      where.memberships = {
+        some: {
+          planTier: plan,
+          status: 'ACTIVE',
+        },
+      };
     }
     if (search) {
       where.OR = [
@@ -109,7 +118,23 @@ export class UsersService {
           email: true,
           name: true,
           role: true,
+          photo: true,
           createdAt: true,
+          memberships: {
+            where: {
+              status: 'ACTIVE',
+            },
+            select: {
+              planTier: true,
+            },
+          },
+          classes: {
+            select: {
+              id: true,
+              name: true,
+              schedule: true,
+            }
+          },
         },
       }),
       this.prisma.user.count({ where }),
@@ -134,6 +159,7 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
+        photo: true,
         createdAt: true,
         memberships: true,
       },
@@ -160,6 +186,7 @@ export class UsersService {
           email: true,
           name: true,
           role: true,
+          photo: true,
           updatedAt: true,
         },
       });
@@ -170,12 +197,43 @@ export class UsersService {
 
   async remove(id: number) {
     try {
-      await this.prisma.user.delete({
-        where: { id },
+      return await this.prisma.$transaction(async (tx) => {
+        // 1. Delete user's own bookings
+        await tx.booking.deleteMany({ where: { userId: id } });
+        
+        // 2. Delete user's memberships
+        await tx.membership.deleteMany({ where: { userId: id } });
+
+        // 3. Handle classes if caller is a trainer
+        const trainerClasses = await tx.class.findMany({ 
+          where: { trainerId: id },
+          select: { id: true }
+        });
+        
+        if (trainerClasses.length > 0) {
+          const classIds = trainerClasses.map(c => c.id);
+          // Delete all bookings for this trainer's classes
+          await tx.booking.deleteMany({
+            where: { classId: { in: classIds } }
+          });
+          // Delete the classes themselves
+          await tx.class.deleteMany({
+            where: { trainerId: id }
+          });
+        }
+
+        // 4. Finally delete the user
+        await tx.user.delete({
+          where: { id },
+        });
+
+        return { message: 'User record and all associated data purged successfully' };
       });
-      return { message: 'User deleted successfully' };
     } catch (error) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      console.error('Purge Error:', error);
+      throw new ConflictException(
+        `Critical Failure: Could not purge user ${id}. System was unable to resolve all dependencies automatically.`
+      );
     }
   }
 }

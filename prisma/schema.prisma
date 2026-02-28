@@ -25,6 +25,7 @@ model User {
   googleId   String?  @unique
   facebookId String?  @unique
   role       Role     @default(USER)
+  photo      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -71,4 +72,19 @@ model Booking {
   classId   Int
   class     Class    @relation(fields: [classId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model MembershipPlan {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  description       String?
+  monthlyPrice      Float
+  yearlyPrice       Float
+  discount          Float    @default(0)
+  dailyClassLimit   Int
+  monthlyClassLimit Int
+  features          String[] @default([])
+  isPopular         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

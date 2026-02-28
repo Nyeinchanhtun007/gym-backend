@@ -8,6 +8,7 @@ import { MembershipsModule } from './memberships/memberships.module';
 import { ClassesModule } from './classes/classes.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
+import { MembershipPlansModule } from './membership-plans/membership-plans.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from './auth/auth.module';
     ClassesModule,
     BookingsModule,
     AuthModule,
+    MembershipPlansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

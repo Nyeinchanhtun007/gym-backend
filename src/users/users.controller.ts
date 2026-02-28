@@ -1,4 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,6 +14,13 @@ import { QueryParamsDto } from '../common/dto/query-params.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('trainers')
+  @ApiOperation({ summary: 'Get all trainers (Public)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  findTrainers(@Query() query: QueryParamsDto) {
+    return this.usersService.findAll({ ...query, role: Role.TRAINER });
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
@@ -20,6 +31,8 @@ export class UsersController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get all users with search, sort and pagination' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Success' })
@@ -29,6 +42,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Success' })
@@ -38,6 +52,8 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update user by ID' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'User updated successfully' })
@@ -47,6 +63,8 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Delete user by ID' })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
