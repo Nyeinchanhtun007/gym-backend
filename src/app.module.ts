@@ -9,6 +9,7 @@ import { ClassesModule } from './classes/classes.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
 import { MembershipPlansModule } from './membership-plans/membership-plans.module';
+import { AccountingModule } from './accounting/accounting.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MembershipPlansModule } from './membership-plans/membership-plans.modul
     BookingsModule,
     AuthModule,
     MembershipPlansModule,
+    AccountingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
