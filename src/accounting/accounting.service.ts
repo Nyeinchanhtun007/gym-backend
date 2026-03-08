@@ -47,6 +47,13 @@ export class AccountingService {
     });
   }
 
+  async getCategories() {
+    const transactions = await this.prisma.transaction.groupBy({
+      by: ['category'],
+    });
+    return transactions.map((t) => t.category);
+  }
+
   async getSummary() {
     const transactions = await this.prisma.transaction.findMany({
       orderBy: { date: 'asc' },

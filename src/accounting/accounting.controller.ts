@@ -18,8 +18,16 @@ export class AccountingController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new transaction' })
-  create(@Body() createTransactionDto: CreateTransactionDto) {
-    return this.accountingService.create(createTransactionDto);
+  async create(@Body() createTransactionDto: CreateTransactionDto) {
+    console.log("INCOMING PROTOCOL:", createTransactionDto);
+    try {
+      const result = await this.accountingService.create(createTransactionDto);
+      console.log("PROTOCOL SUCCESS:", result.id);
+      return result;
+    } catch (e) {
+      console.error("PROTOCOL FAILURE:", e);
+      throw e;
+    }
   }
 
   @Get()
@@ -32,6 +40,12 @@ export class AccountingController {
   @ApiOperation({ summary: 'Get financial summary' })
   getSummary() {
     return this.accountingService.getSummary();
+  }
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all transaction categories' })
+  getCategories() {
+    return this.accountingService.getCategories();
   }
 
   @Get(':id')

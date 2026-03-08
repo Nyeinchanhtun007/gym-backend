@@ -94,24 +94,11 @@ enum TransactionType {
   EXPENSE
 }
 
-enum TransactionCategory {
-  MEMBERSHIP_FEE
-  PERSONAL_TRAINING
-  CAFE_SALES
-  EQUIPMENT_PURCHASE
-  RENT
-  UTILITIES
-  SALARY
-  MAINTENANCE
-  MARKETING
-  OTHER
-}
-
 model Transaction {
   id          Int                 @id @default(autoincrement())
   amount      Float
   type        TransactionType
-  category    TransactionCategory
+  category    String
   description String?
   date        DateTime            @default(now())
   createdAt   DateTime            @default(now())

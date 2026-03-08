@@ -1,5 +1,5 @@
 import { IsNumber, IsString, IsEnum, IsOptional, IsDateString } from 'class-validator';
-import { TransactionType, TransactionCategory } from '@prisma/client';
+import { TransactionType } from '@prisma/client';
 
 export class CreateTransactionDto {
   @IsNumber()
@@ -8,8 +8,8 @@ export class CreateTransactionDto {
   @IsEnum(TransactionType)
   type: TransactionType;
 
-  @IsEnum(TransactionCategory)
-  category: TransactionCategory;
+  @IsString()
+  category: string;
 
   @IsString()
   @IsOptional()
