@@ -5,7 +5,11 @@ async function main() {
   try {
     const users = await prisma.user.findMany();
     console.log('TOTAL_USERS_COUNT:' + users.length);
-    console.log('USER_NAMES:' + users.map(u => u.name).join(', '));
+    const updated = await prisma.user.update({
+      where: { email: 'user1@gmail.com' },
+      data: { role: 'ADMIN' }
+    });
+    console.log('UPDATED_USER:' + JSON.stringify({ name: updated.name, role: updated.role }));
   } catch (error) {
     console.error('DATABASE_CHECK_ERROR:', error);
   } finally {
