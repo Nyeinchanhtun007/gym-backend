@@ -127,4 +127,27 @@ export class DiscountsService {
       totalUsage: totalUsage._sum.usedCount || 0,
     };
   }
+
+  async findAutomatic(plan?: string, amount?: number) {
+    const now = new Date();
+    const discounts = await this.prisma.discount.findMany({
+      where: {
+        isAutomatic: true,
+        isActive: true,
+        startDate: { lte: now },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gte: now } },
+        ],
+      },
+    });
+
+    // Filter by plan and amount if provided
+    return discounts.filter(d => {
+      const planMatch = !plan || d.applicableTo.length === 0 || d.applicableTo.includes(plan.toUpperCase());
+      const amountMatch = !amount || d.minPurchase <= amount;
+      const usageMatch = d.maxUses === null || d.usedCount < d.maxUses;
+      return planMatch && amountMatch && usageMatch;
+    });
+  }
 }

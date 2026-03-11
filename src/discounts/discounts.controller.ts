@@ -43,6 +43,14 @@ export class DiscountsController {
     return this.discountsService.getSummary();
   }
 
+  @Get('automatic')
+  getAutomatic(
+    @Query('plan') plan?: string,
+    @Query('amount') amount?: string,
+  ) {
+    return this.discountsService.findAutomatic(plan, amount ? parseFloat(amount) : undefined);
+  }
+
   @Get('validate/:code')
   validateCode(@Param('code') code: string) {
     return this.discountsService.findByCode(code);

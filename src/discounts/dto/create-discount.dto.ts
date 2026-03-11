@@ -56,6 +56,10 @@ export class CreateDiscountDto {
   @IsOptional()
   isRecurring?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  isAutomatic?: boolean;
+
   @IsNumber()
   @IsOptional()
   @Min(1)

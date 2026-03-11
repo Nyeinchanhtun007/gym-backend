@@ -123,6 +123,7 @@ model Discount {
   usedCount    Int          @default(0)
   isRecurring       Boolean      @default(false) // If true, can be applied to recurring payments
   recurringDuration Int?         // Number of months/cycles (null = forever if isRecurring is true)
+  isAutomatic       Boolean      @default(false) // If true, applied automatically without code
   isActive          Boolean      @default(true)
   startDate    DateTime     @default(now())
   expiresAt    DateTime?
