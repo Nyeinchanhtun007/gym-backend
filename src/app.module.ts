@@ -10,6 +10,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
 import { MembershipPlansModule } from './membership-plans/membership-plans.module';
 import { AccountingModule } from './accounting/accounting.module';
+import { DiscountsModule } from './discounts/discounts.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AccountingModule } from './accounting/accounting.module';
     AuthModule,
     MembershipPlansModule,
     AccountingModule,
+    DiscountsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
