@@ -19,11 +19,6 @@ export class CreateMembershipPlanDto {
   @IsNumber()
   yearlyPrice: number;
 
-  @ApiProperty({ default: 0 })
-  @IsNumber()
-  @IsOptional()
-  discount?: number;
-
   @ApiProperty()
   @IsNumber()
   dailyClassLimit: number;

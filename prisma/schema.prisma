@@ -88,7 +88,6 @@ model MembershipPlan {
   description       String?
   monthlyPrice      Float
   yearlyPrice       Float
-  discount          Float    @default(0)
   dailyClassLimit   Int
   monthlyClassLimit Int
   features          String[] @default([])
