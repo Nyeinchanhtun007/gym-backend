@@ -33,6 +33,39 @@ model User {
   bookings    Booking[]
   classes     Class[]
   discountUsages DiscountUsage[]
+  paymentRequests PaymentRequest[]
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PaymentRequest {
+  id                Int           @id @default(autoincrement())
+  userId            Int
+  user              User          @relation(fields: [userId], references: [id])
+  planName          String
+  originalPrice     Float         @default(0)
+  autoDiscountAmount Float        @default(0)
+  autoDiscountCode  String?
+  price             Float         // final price after all discounts
+  billingCycle      String
+  startDate         DateTime
+  endDate           DateTime
+  dailyClassLimit   Int           @default(0)
+  monthlyClassLimit Int           @default(0)
+  payerName         String
+  payerPhone        String
+  paymentMethod     String
+  promoCode         String?
+  discountAmount    Float         @default(0) // promo code discount amount
+  paymentProof      String?       // base64 or URL of the screenshot
+  status            PaymentStatus @default(PENDING)
+  adminNote         String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 }
 
 model Membership {
@@ -44,11 +77,16 @@ model Membership {
   planTier          String   // Basic, Standard, Premium
   billingCycle      String   // Monthly, Yearly
   status            String   // ACTIVE, EXPIRED, CANCELLED, PENDING_DOWNGRADE
-  price             Float    @default(0)
+  originalPrice     Float    @default(0)
+  autoDiscountAmount Float   @default(0)
+  autoDiscountCode  String?
+  price             Float    @default(0) // final price paid
   dailyClassLimit   Int      @default(0)
   monthlyClassLimit Int      @default(0)
   nextPlanTier      String?  // For pending downgrades
   nextBillingCycle  String?  // For pending downgrades
+  promoCode         String?
+  discountAmount    Float    @default(0) // promo code discount
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
