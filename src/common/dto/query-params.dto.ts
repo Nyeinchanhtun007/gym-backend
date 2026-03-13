@@ -42,4 +42,9 @@ export class QueryParamsDto {
   @IsOptional()
   @IsString()
   plan?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

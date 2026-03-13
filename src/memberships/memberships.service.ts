@@ -65,7 +65,14 @@ export class MembershipsService {
   }
 
   async findAll(query: QueryParamsDto) {
-    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy,
+      sortOrder = 'desc',
+      status,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -77,12 +84,27 @@ export class MembershipsService {
       ];
     }
 
+    if (status) {
+      where.status = status;
+    }
+
+    let orderBy: any = {};
+    if (sortBy === 'user') {
+      orderBy = { user: { name: sortOrder } };
+    } else if (sortBy === 'tier') {
+      orderBy = { planTier: sortOrder };
+    } else if (sortBy) {
+      orderBy = { [sortBy]: sortOrder };
+    } else {
+      orderBy = { createdAt: sortOrder };
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.membership.findMany({
         where,
         take: limit,
         skip,
-        orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: sortOrder },
+        orderBy,
         include: {
           user: {
             select: {
