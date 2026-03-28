@@ -10,6 +10,21 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 402764083
+          POSTGRES_DB: ygn_gym
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -25,7 +40,7 @@ jobs:
     - name: Generate Prisma Client
       run: npx prisma generate
       env:
-        DATABASE_URL: postgresql://postgres:402764083@localhost:5432/postgres
+        DATABASE_URL: postgresql://postgres:402764083@localhost:5432/ygn_gym
 
     - name: Run Lint
       run: npm run lint
