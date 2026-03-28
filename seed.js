@@ -7,6 +7,9 @@ async function main() {
 
   // 1. Cleanup
   console.log('Cleaning existing data...');
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.product.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.class.deleteMany();
   await prisma.membership.deleteMany();
@@ -163,11 +166,30 @@ async function main() {
     });
   }
 
+  console.log('Seeding 10 Initial Products...');
+  const products = [
+    { name: 'Elite Comp Sportswear T-Shirt', category: 'Sportswear', price: 45, stock: 50, description: 'Moisture-wicking, antimicrobial fabric for high-intensity training.' },
+    { name: 'Pro-Grip Training Shoes', category: 'Shoes', price: 120, stock: 30, description: 'Stable base with responsive cushioning for cross-training.' },
+    { name: 'Pure Whey Isolate (2kg)', category: 'Protein', price: 75, stock: 100, description: '25g protein per serving, zero sugar, fast absorption.' },
+    { name: 'Microfiber Tactical Towel', category: 'Towel', price: 15, stock: 200, description: 'Quick-dry, ultra-absorbent, compact size.' },
+    { name: 'Compression Shorts', category: 'Sportswear', price: 35, stock: 60, description: 'Medical-grade compression to aid recovery and blood flow.' },
+    { name: 'Weightlifting Belt', category: 'Sportswear', price: 55, stock: 25, description: 'Reinforced leather for maximum lumbar support.' },
+    { name: 'Pre-Workout Igniter', category: 'Protein', price: 40, stock: 80, description: 'High-caffeine formula with beta-alanine for explosive energy.' },
+    { name: 'BCAA Recovery Formula', category: 'Protein', price: 30, stock: 90, description: '2:1:1 ratio for muscle repair and hydration.' },
+    { name: 'Cooling Sweatband Set', category: 'Sportswear', price: 12, stock: 150, description: 'Soft, breathable material to manage sweat during sessions.' },
+    { name: 'Yoga Mat (Eco-Friendly)', category: 'Sportswear', price: 50, stock: 40, description: 'Non-slip surface with perfect cushioning for mobility work.' },
+  ];
+
+  for (const product of products) {
+    await prisma.product.create({ data: product });
+  }
+
   console.log('Seeding complete!');
   console.log('Generated:');
   console.log(`- ${trainers.length} Trainers`);
   console.log('- 100 Members with active memberships');
   console.log('- 50 Classes distributed across the week');
+  console.log('- 10 Shop Products');
 }
 
 main()

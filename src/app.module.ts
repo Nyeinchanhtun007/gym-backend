@@ -12,6 +12,9 @@ import { MembershipPlansModule } from './membership-plans/membership-plans.modul
 import { AccountingModule } from './accounting/accounting.module';
 import { DiscountsModule } from './discounts/discounts.module';
 import { PaymentRequestsModule } from './payment-requests/payment-requests.module';
+import { ProductsModule } from './products/products.module';
+import { OrdersModule } from './orders/orders.module';
+
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { PaymentRequestsModule } from './payment-requests/payment-requests.modul
     AccountingModule,
     DiscountsModule,
     PaymentRequestsModule,
+    ProductsModule,
+    OrdersModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],
